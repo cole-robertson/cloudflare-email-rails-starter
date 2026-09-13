@@ -67,4 +67,4 @@ end
 
 gem "cloudflare-email", "~> 0.3.0"
 
-gem "json", "< 3"
+gem "json", "< 4"
