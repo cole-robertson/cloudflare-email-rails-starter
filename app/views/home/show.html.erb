@@ -1,0 +1,5 @@
+<h1>Hello, mailbox!</h1>
+<p>Signed in as <%= Current.user.email_address %>.</p>
+<p><%= link_to "Open your mailboxes", email_management.root_path, data: { turbo: false } %></p>
+<p>Create an inbox, add aliases, and read or archive incoming mail. The mailbox interface is provided by cloudflare-email.</p>
+<%= button_to "Sign out", session_path, method: :delete %>
