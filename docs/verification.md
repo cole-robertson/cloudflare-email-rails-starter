@@ -57,6 +57,9 @@ the clean/idempotent setup on pushes and weekly.
   host code.
 - Rails 8.1 currently needs JSON below 3 for its JSON option handling; the starter
   declares that compatibility constraint.
+- The tiny login/home pages use ordinary HTML navigation (`data-turbo="false"`)
+  so authentication redirects do not leave an old page displayed as a Turbo
+  stream response. Browser sign-in/sign-out were checked with this setting.
 - The engine's default text describes pending address activation. The starter
   activates immediately because its setup asserts an already-routed domain.
 - A Cloudflare Worker catch-all does not mean arbitrary recipient addresses are
