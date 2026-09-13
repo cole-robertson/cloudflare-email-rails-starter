@@ -101,6 +101,20 @@ end
 
 ## Connect real Cloudflare email
 
+Use the gem's [domain setup worksheet](https://github.com/cole-robertson/cloudflare-email/blob/main/templates/worker/docs/domain-setup.md)
+for both `acme@in.example.com` and `invoices@acme.in.example.com`. It cites Rebulk's
+working wildcard MX/catch-all pattern, Cloudflare's official documentation, and
+the differences a new account must verify. The current Worker templates include
+`npm run check:subdomains -- --base in.example.com --labels acme,globex` to inspect
+named and fresh MX answers without credentials or configuration changes.
+
+This starter keeps one domain to stay small. In an organization-aware app, once
+the dynamic receiving namespace is verified, register each exact organization
+domain in Rails and return that organization's allowed domains from the engine
+adapter. There is no per-organization Worker allowlist or routine Cloudflare
+approval in Rebulk's established pattern. The guide includes the gem API recipe;
+database multi-tenancy is still optional.
+
 Deploy this Rails app to an HTTPS host first. Keep SQLite databases and Active
 Storage files on persistent storage with backups. Run Solid Queue (`bin/jobs`, or
 `SOLID_QUEUE_IN_PUMA=true` for a single server) for Action Mailbox jobs. Configure
