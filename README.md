@@ -1,12 +1,14 @@
 # Hello, mailbox!
 
-A tiny mailbox app built with **stock Rails 8.1, SQLite, and the published
-[cloudflare-email 0.3.0 gem](https://rubygems.org/gems/cloudflare-email)**.
+A tiny mailbox app built with **stock Rails 8.1, SQLite, Mailbox Kit, and
+Cloudflare Email**. This branch dogfoods both gems at the merged upstream commit
+`8502f9ca941b3a0fd2c938ca84da7fa5bac2aefd`; the extraction is not yet on RubyGems.
 
 Sign in, create inboxes and aliases, receive mail, read messages, mark them
 read/unread, archive them, and pause receiving. Rails generates the login; the
-gem provides the mailbox models, signed ingress, persistence, and entire mailbox
-management UI. There are no custom mailbox tables, inbox controllers, or React
+core gem provides inbox identities, memberships, and the entire mailbox
+management UI. Rails stores and processes raw email; Cloudflare verifies incoming
+requests. There are no custom mailbox tables, inbox controllers, or React
 components. Database multi-tenancy is not enabled.
 
 ## Try it locally
@@ -92,7 +94,7 @@ administrator UI in this starter. Each account only sees its own mailboxes.
 The underlying gem API is also available directly:
 
 ```ruby
-Cloudflare::Email::Mailboxes.for_tenant("application") do |inboxes|
+MailboxKit::Mailboxes.for_tenant("application") do |inboxes|
   # The caller must apply its own ownership/authorization scope.
   mine = inboxes.mailboxes.where(owner_ref: "User:#{user.id}")
   entries = inboxes.messages(mine.find(mailbox.id).id)
@@ -123,7 +125,7 @@ your normal Rails production secrets; do not commit credentials to the repo.
 1. Choose a receiving domain such as `in.example.com`. Configure Email Routing
    for that exact domain/subdomain. Keep existing Google Workspace/Microsoft 365
    MX records intact; use a dedicated receiving subdomain when appropriate.
-2. Set `MAILBOX_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, and a random
+2. Set `MAILBOX_DOMAIN` and a random
    `CLOUDFLARE_INGRESS_SECRET` in Rails. Use `openssl rand -hex 32` for the secret.
    Set `APP_HOST` to the application's HTTPS hostname.
 3. Use the gem's [Deploy to Cloudflare template](https://github.com/cole-robertson/cloudflare-email/tree/main/templates/deploy-to-cloudflare).
@@ -159,8 +161,9 @@ This is a receiving-first starter. The management UI has no compose/send page.
 Production password resets or other Rails mailers additionally need a verified
 `MAIL_FROM` address and `CLOUDFLARE_API_TOKEN` with sending permission. Outbound
 delivery tracking needs its own setup; an inbound Worker does not configure it.
-Action Mailbox's default incineration removes processed raw mail after 30 days;
-choose your retention policy before storing important mail here.
+Mailbox Kit retains inbox-associated raw messages through Rails' incineration
+hook. Unassociated mail follows Rails' cleanup policy. Choose backups and storage
+retention appropriate to your application.
 
 ## Recreate from an empty Rails app
 
@@ -169,7 +172,8 @@ The setup began with the ordinary Rails generator, then:
 ```sh
 rails new hello_mailbox --database sqlite3
 cd hello_mailbox
-bundle add cloudflare-email --version '~> 0.3.0'
+# Add the pinned two-gem Git block from this repository's Gemfile, then:
+bundle install
 bundle add json --version '< 3'
 bin/rails generate authentication
 bin/rails action_mailbox:install
@@ -179,7 +183,7 @@ bin/rails db:migrate
 ```
 
 Then add the small host files listed above, the home page, and engine mount;
-require `cloudflare/email/management` after `Bundler.require` in
+require `mailbox_kit/management` after `Bundler.require` in
 `config/application.rb`. This repo has those steps completed for you.
 The generated `cloudflare-worker/` copy is omitted here because the maintained
 deploy template lives in the gem repo. JSON is bounded below 3 for compatibility
@@ -199,8 +203,11 @@ Tests cover login/session revocation, owner isolation, mailbox/alias creation,
 signed ingress, raw attachment retention, deduplication, unknown/suspended
 recipients, escaped message rendering, and read/archive state. See
 [the dogfood report](docs/verification.md) for the actual run and its limits.
+The [Mailbox Kit upgrade report](docs/mailbox-kit-dogfood.md) records this branch's
+tests and repeatable HTTP exercise.
 
 CI runs on pushes and weekly, and Dependabot checks dependencies. To dogfood a new
-gem release, run `bundle update cloudflare-email`, run the checks, and review
-Worker upgrade notes separately. The app depends on RubyGems, not a local gem
-checkout or a Git revision.
+gem release, update both gem requirements together, run the checks, and review
+Worker upgrade notes separately. The current immutable Git pin makes this
+unreleased integration reproducible without a local checkout. Once both gems are
+published, replace it with their released RubyGems requirements.

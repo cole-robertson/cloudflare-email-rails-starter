@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_194544) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_001000) do
   create_table "action_mailbox_inbound_emails", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "message_checksum", null: false
@@ -89,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_194544) do
     t.string "recipient", null: false
     t.string "tenant_key", null: false
     t.datetime "updated_at", null: false
+    t.index ["inbound_email_id"], name: "idx_cf_email_message_inbound"
     t.index ["mailbox_id", "inbound_email_id"], name: "idx_cf_email_mailbox_inbound", unique: true
     t.index ["tenant_key", "mailbox_id", "archived_at", "id"], name: "idx_cf_email_mailbox_inbox"
   end
@@ -171,7 +172,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_194544) do
   end
 
   create_table "cloudflare_email_receiving_domains", force: :cascade do |t|
-    t.string "account_id", null: false
+    t.string "account_id"
     t.datetime "created_at", null: false
     t.string "domain", null: false
     t.text "provisioning_evidence"

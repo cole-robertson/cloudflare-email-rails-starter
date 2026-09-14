@@ -5,7 +5,7 @@ if Rails.env.local?
   ENV["CLOUDFLARE_INGRESS_SECRET"] ||= Rails.application.secret_key_base
 end
 
-Cloudflare::Email::Management.configure do |config|
+MailboxKit::Management.configure do |config|
   config.adapter = ->(controller) { MailboxAccess.new(controller) }
   config.back_path = ->(controller) { controller.main_app.root_path }
 end

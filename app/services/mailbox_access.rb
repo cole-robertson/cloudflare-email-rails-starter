@@ -1,4 +1,4 @@
-class MailboxAccess < Cloudflare::Email::Management::Adapter
+class MailboxAccess < MailboxKit::Management::Adapter
   ACTIONS = %i[index show create add_address suspend resume show_message mark_read archive].freeze
 
   def authenticate!

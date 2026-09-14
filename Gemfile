@@ -65,6 +65,9 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem "cloudflare-email", "~> 0.3.0"
+git "https://github.com/cole-robertson/cloudflare-email.git", ref: "8502f9ca941b3a0fd2c938ca84da7fa5bac2aefd" do
+  gem "mailbox-kit", require: false
+  gem "cloudflare-email"
+end
 
 gem "json", "< 3"
