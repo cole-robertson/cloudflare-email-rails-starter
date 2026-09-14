@@ -4,9 +4,9 @@ require "cloudflare/email/verification"
 class MailboxesTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
-    @domain = Cloudflare::Email::Mailboxes.register_domain(domain: Rails.configuration.x.mailbox_domain,
-      tenant_key: MailboxProvisioning::KEY, account_id: "local-demo")
-    Cloudflare::Email::Mailboxes.activate_domain!(@domain.id, evidence: "Synthetic integration test")
+    @domain = MailboxKit::Mailboxes.register_domain(domain: Rails.configuration.x.mailbox_domain,
+      tenant_key: MailboxProvisioning::KEY)
+    MailboxKit::Mailboxes.activate_domain!(@domain.id, evidence: "Synthetic integration test")
     @mailbox = MailboxProvisioning.create(user: @user, name: "My inbox", address: "hello@#{@domain.domain}")
   end
 
@@ -50,7 +50,7 @@ class MailboxesTest < ActionDispatch::IntegrationTest
 
   test "an unrelated domain cannot be claimed in the UI" do
     sign_in_as @user
-    assert_no_difference "Cloudflare::Email::Mailboxes::Mailbox.count" do
+    assert_no_difference "MailboxKit::Mailboxes::Mailbox.count" do
       post "/mailboxes/mailboxes", params: { mailbox: { name: "Foreign", address: "hello@someone-else.test" } }
     end
   end
@@ -70,6 +70,21 @@ class MailboxesTest < ActionDispatch::IntegrationTest
       assert_equal raw, inbound.raw_email.download
       assert_equal "attachment bytes", inbound.mail.attachments.first.decoded
       assert_equal "hello@#{@domain.domain}", entry.recipient
+    end
+  end
+
+  test "core attaches existing Rails mail idempotently and retains it until explicitly purged" do
+    inbound = ActionMailbox::InboundEmail.create_and_extract_message_id!(raw_email)
+    inboxes do |session|
+      entry = session.attach(recipient: "hello@#{@domain.domain}", inbound_email_id: inbound.id)
+      assert_equal entry.id, session.attach(recipient: "hello@#{@domain.domain}", inbound_email_id: inbound.id).id
+      inbound.delivered!
+      travel 31.days do
+        inbound.incinerate
+        assert ActionMailbox::InboundEmail.exists?(inbound.id)
+      end
+      session.purge_message(@mailbox.id, entry.id)
+      assert_not ActionMailbox::InboundEmail.exists?(inbound.id)
     end
   end
 
@@ -119,7 +134,7 @@ class MailboxesTest < ActionDispatch::IntegrationTest
   private
 
   def inboxes(&block)
-    Cloudflare::Email::Mailboxes.for_tenant(MailboxProvisioning::KEY, &block)
+    MailboxKit::Mailboxes.for_tenant(MailboxProvisioning::KEY, &block)
   end
 
   def raw_email
